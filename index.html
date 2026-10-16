@@ -1,47 +1,64 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="om">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BULBULA BINGO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulbula Bingo</title>
 <style>
-body{font-family:Arial;background:#10251c;color:white;text-align:center;padding:20px}
-h1{color:#55e68b}
-button{background:#19a85b;color:white;border:0;padding:13px 20px;border-radius:10px;font-size:17px;margin:8px}
-.card{background:white;color:#111;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;max-width:340px;margin:20px auto;padding:8px;border-radius:10px}
-.cell{background:#e4f7e9;padding:12px 2px;border-radius:5px;font-weight:bold}
-.marked{background:#23b65e;color:white}
-input{padding:12px;border-radius:8px;width:80%;margin:8px}
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f0f7ff;
+  padding: 12px;
+}
+h1 { color: #0757a6; }
+#board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+  max-width: 420px;
+  margin: 20px auto;
+}
+.number {
+  background: white;
+  border: 2px solid #0875d1;
+  border-radius: 8px;
+  padding: 14px 0;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.number.selected {
+  background: #19a65a;
+  color: white;
+}
+p { font-size: 16px; }
 </style>
 </head>
 <body>
-<h1>🎱 BULBULA BINGO</h1>
-<p>Welcome! Tap below to create your Bingo card.</p>
-<button onclick="newCard()">Create Bingo Card</button>
-<div id="card" class="card"></div>
-<p id="message">Good luck!</p>
+
+<h1>🎱 Bulbula Bingo</h1>
+<p>Afaan Oromoo: Lakkoofsa 1 hanga 47 tuqi.</p>
+<p>አማርኛ፦ ከ1 እስከ 47 ያሉትን ቁጥሮች ይጫኑ።</p>
+<p>💰 Kaffaltii: 10 Birr (Qajeelfama qofa; kaffaltiin hin mirkanoofne)</p>
+
+<div id="board"></div>
+
 <script>
-function newCard(){
- const card=document.getElementById('card');
- card.innerHTML='';
- const letters=['B','I','N','G','O'];
- for(let c=0;c<5;c++){
-  let h=document.createElement('div');
-  h.className='cell';
-  h.textContent=letters[c];
-  card.appendChild(h);
- }
- for(let i=0;i<25;i++){
-  let n=document.createElement('div');
-  n.className='cell';
-  n.textContent=i===12?'FREE':Math.floor(Math.random()*75)+1;
-  n.onclick=()=>n.classList.toggle('marked');
-  card.appendChild(n);
- }
- document.getElementById('message').textContent='Your Bingo card is ready!';
+const board = document.getElementById("board");
+
+for (let i = 1; i <= 47; i++) {
+  const cell = document.createElement("button");
+  cell.className = "number";
+  cell.textContent = i;
+
+  cell.onclick = function () {
+    cell.classList.toggle("selected");
+  };
+
+  board.appendChild(cell);
 }
-newCard();
 </script>
+
 </body>
 </html>
