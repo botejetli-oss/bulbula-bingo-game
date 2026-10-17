@@ -6,170 +6,294 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bingo 300</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  background: #f0f4f8;
-  margin: 0;
-  padding: 15px;
-}
-h1 { color: #075e54; }
-button {
-  padding: 12px;
-  margin: 5px;
-  border: 0;
-  border-radius: 8px;
-  background: #087f5b;
-  color: white;
-  font-size: 16px;
-}
-#board {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 5px;
-  max-width: 420px;
-  margin: 15px auto;
-}
-.cell {
-  background: white;
-  color: #222;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  padding: 15px 2px;
-  font-weight: bold;
-}
-.cell.marked {
-  background: #087f5b;
-  color: white;
-}
-#current { font-size: 28px; font-weight: bold; }
-#history { overflow-wrap: anywhere; }
+body{font-family:Arial,sans-serif;text-align:center;background:#f0f4f8;padding:15px;margin:0}
+h1{color:#075e54}
+button,input{padding:12px;margin:5px;border-radius:8px;font-size:16px}
+button{background:#087f5b;color:white;border:0}
+input{width:80%;max-width:300px;border:1px solid #aaa}
+#board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;max-width:420px;margin:15px auto}
+.cell{background:white;border:1px solid #bbb;border-radius:6px;padding:14px 2px;font-weight:bold;overflow-wrap:anywhere}
+.marked{background:#087f5b;color:white}
+#current{font-size:32px;font-weight:bold}
+#history{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
-<h1 id="title">Bingo 300</h1>
 
+<h1 id="title">Bingo 300</h1>
 <button onclick="setLang('om')">Afaan Oromoo</button>
 <button onclick="setLang('am')">አማርኛ</button>
 
-<p id="instruction">Lakkoofsa haaraa baasuuf tuqi.</p>
-<p id="current">--</p>
+<p id="help">Tapha haaraa uumi ykn koodii taphaa galchi.</p>
 
-<button id="draw" onclick="drawNumber()">Lakkoofsa baasi</button>
-<button id="new" onclick="newGame()">Tapha haaraa</button>
+<input id="roomInput" placeholder="Koodii taphaa galchi">
+<br>
+<button id="createBtn" onclick="createRoom()">Tapha uumi</button>
+<button id="joinBtn" onclick="joinRoom()">Tapha seeni</button>
+
+<p id="roomInfo">Koodiin taphaa asitti mul'ata.</p>
+<hr>
+
+<p id="currentLabel">Lakkoofsa ammaa</p>
+<div id="current">--</div>
+<button id="drawBtn" onclick="drawNumber()" disabled>
+Lakkoofsa baasi
+</button>
 
 <h3 id="cardTitle">Kaardii Bingo kee</h3>
 <div id="board"></div>
 
 <h3 id="historyTitle">Lakkoofsota ba'an</h3>
 <p id="history">Ammaaf lakkoofsi hin baane.</p>
-<h2 id="result"></h2>
+<p id="status"></p>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// Supabase Project URL fi Publishable key kee galchi.
+const SUPABASE_URL = "PASTE_YOUR_PROJECT_URL_HERE";
+const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
 let lang = "om";
+let roomCode = "";
+let game = null;
 let card = [];
-let drawn = [];
-let marks = new Set();
+let poller = null;
 
 const words = {
  om: {
-  instruction: "Lakkoofsa haaraa baasuuf tuqi.",
-  draw: "Lakkoofsa baasi",
-  newGame: "Tapha haaraa",
-  card: "Kaardii Bingo kee",
-  history: "Lakkoofsota ba'an",
-  empty: "Ammaaf lakkoofsi hin baane.",
-  next: "Lakkoofsi ba'e",
-  win: "BAGA GAMMADDE! BINGO!",
-  finished: "Lakkoofsi 300 hundi ba'e. Tapha haaraa jalqabi.",
-  title: "Bingo 300"
+  help:"Tapha haaraa uumi ykn koodii taphaa galchi.",
+  create:"Tapha uumi", join:"Tapha seeni",
+  input:"Koodii taphaa galchi",
+  room:"Koodiin taphaa: ",
+  current:"Lakkoofsa ammaa",
+  draw:"Lakkoofsa baasi", card:"Kaardii Bingo kee",
+  history:"Lakkoofsota ba'an",
+  empty:"Ammaaf lakkoofsi hin baane.",
+  ready:"Tapha keessatti seente.",
+  created:"Tapha uumteetta! Koodii kana hiriyoota keetiif ergi.",
+  bingo:"BAGA GAMMADDE! BINGO!",
+  waiting:"Tapha waliin hidhuuf koodii galchi.",
+  error:"Dogoggorri uumame. URL, key fi koodii taphaa ilaali.",
+  drawing:"Lakkoofsa ba'aa jira...",
+  noRoom:"Koodiin taphaa hin argamne."
  },
  am: {
-  instruction: "አዲስ ቁጥር ለማውጣት ይጫኑ።",
-  draw: "ቁጥር አውጣ",
-  newGame: "አዲስ ጨዋታ",
-  card: "የቢንጎ ካርድዎ",
-  history: "የወጡ ቁጥሮች",
-  empty: "እስካሁን ቁጥር አልወጣም።",
-  next: "የወጣው ቁጥር",
-  win: "እንኳን ደስ አለዎት! ቢንጎ!",
-  finished: "300ዎቹ ቁጥሮች ወጥተዋል። አዲስ ጨዋታ ይጀምሩ።",
-  title: "ቢንጎ 300"
+  help:"አዲስ ጨዋታ ይፍጠሩ ወይም የጨዋታ ኮድ ያስገቡ።",
+  create:"ጨዋታ ፍጠር", join:"ጨዋታ ግባ",
+  input:"የጨዋታ ኮድ ያስገቡ",
+  room:"የጨዋታ ኮድ: ",
+  current:"አሁን የወጣው ቁጥር",
+  draw:"ቁጥር አውጣ", card:"የቢንጎ ካርድዎ",
+  history:"የወጡ ቁጥሮች",
+  empty:"እስካሁን ቁጥር አልወጣም።",
+  ready:"ወደ ጨዋታው ገብተዋል።",
+  created:"ጨዋታ ፈጥረዋል! ኮዱን ለጓደኞችዎ ይላኩ።",
+  bingo:"እንኳን ደስ አለዎት! ቢንጎ!",
+  waiting:"የጨዋታ ኮድ ያስገቡ።",
+  error:"ስህተት ተፈጥሯል። URL፣ key እና ኮዱን ያረጋግጡ።",
+  drawing:"ቁጥር እየወጣ ነው...",
+  noRoom:"የጨዋታ ኮዱ አልተገኘም።"
  }
 };
 
 function setLang(language) {
  lang = language;
  const w = words[lang];
- document.getElementById("title").textContent = w.title;
- document.getElementById("instruction").textContent = w.instruction;
- document.getElementById("draw").textContent = w.draw;
- document.getElementById("new").textContent = w.newGame;
+ document.getElementById("title").textContent =
+   lang === "om" ? "Bingo 300" : "ቢንጎ 300";
+ document.getElementById("help").textContent = w.help;
+ document.getElementById("createBtn").textContent = w.create;
+ document.getElementById("joinBtn").textContent = w.join;
+ document.getElementById("roomInput").placeholder = w.input;
+ document.getElementById("currentLabel").textContent = w.current;
+ document.getElementById("drawBtn").textContent = w.draw;
  document.getElementById("cardTitle").textContent = w.card;
  document.getElementById("historyTitle").textContent = w.history;
  render();
 }
 
-function newGame() {
- const pool = Array.from({length: 300}, (_, i) => i + 1);
- for (let i = pool.length - 1; i > 0; i--) {
-  const j = Math.floor(Math.random() * (i + 1));
-  [pool[i], pool[j]] = [pool[j], pool[i]];
+function makeCard() {
+ const pool = Array.from({length:300}, (_,i)=>i+1);
+ for(let i=pool.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [pool[i],pool[j]]=[pool[j],pool[i]];
  }
- card = pool.slice(0, 25);
- drawn = [];
- marks = new Set();
- document.getElementById("current").textContent = "--";
- document.getElementById("result").textContent = "";
- render();
+ card = pool.slice(0,25);
 }
 
-function drawNumber() {
- const remaining = [];
- for (let n = 1; n <= 300; n++) {
-  if (!drawn.includes(n)) remaining.push(n);
+async function createRoom() {
+ try {
+  roomCode = Math.random().toString(36).slice(2,8).toUpperCase();
+  const {data,error} = await db.from("bingo_games")
+   .insert({
+    room_code:roomCode,
+    current_number:null,
+    drawn_numbers:[],
+    status:"playing",
+    host_name:"Host"
+   })
+   .select()
+   .single();
+
+  if(error) throw error;
+  game = data;
+  makeCard();
+  document.getElementById("roomInput").value = roomCode;
+  document.getElementById("roomInfo").textContent =
+   words[lang].room + roomCode;
+  document.getElementById("status").textContent =
+   words[lang].created;
+  document.getElementById("drawBtn").disabled = false;
+  startSync();
+ } catch(e) {
+  console.error(e);
+  document.getElementById("status").textContent =
+   words[lang].error + " " + (e.message || "");
  }
- if (!remaining.length) {
-  document.getElementById("result").textContent = words[lang].finished;
-  return;
+}
+
+async function joinRoom() {
+ const code = document.getElementById("roomInput").value
+  .trim().toUpperCase();
+ if(!code) return;
+
+ try {
+  const {data,error} = await db.from("bingo_games")
+   .select("*")
+   .eq("room_code",code)
+   .maybeSingle();
+
+  if(error) throw error;
+  if(!data) {
+   document.getElementById("status").textContent =
+    words[lang].noRoom;
+   return;
+  }
+
+  roomCode = code;
+  game = data;
+  makeCard();
+  document.getElementById("roomInfo").textContent =
+   words[lang].room + roomCode;
+  document.getElementById("status").textContent =
+   words[lang].ready;
+  document.getElementById("drawBtn").disabled = false;
+  startSync();
+ } catch(e) {
+  console.error(e);
+  document.getElementById("status").textContent =
+   words[lang].error + " " + (e.message || "");
  }
- const n = remaining[Math.floor(Math.random() * remaining.length)];
- drawn.push(n);
- if (card.includes(n)) marks.add(n);
- document.getElementById("current").textContent =
-   words[lang].next + ": " + n;
+}
+
+function startSync() {
+ if(poller) clearInterval(poller);
  render();
- if (hasBingo()) {
-  document.getElementById("result").textContent = words[lang].win;
+ poller = setInterval(syncGame,2000);
+}
+
+async function syncGame() {
+ if(!roomCode) return;
+ try {
+  const {data,error} = await db.from("bingo_games")
+   .select("*")
+   .eq("room_code",roomCode)
+   .maybeSingle();
+  if(error) throw error;
+  if(data) {
+   game = data;
+   render();
+  }
+ } catch(e) {
+  console.error(e);
+ }
+}
+
+async function drawNumber() {
+ if(!game || !roomCode) return;
+ try {
+  const {data,error} = await db.from("bingo_games")
+   .select("*")
+   .eq("room_code",roomCode)
+   .single();
+  if(error) throw error;
+
+  const used = data.drawn_numbers || [];
+  if(used.length >= 300) {
+   document.getElementById("status").textContent =
+    lang==="om" ? "Lakkoofsi 300 hundi ba'e." :
+    "300ዎቹ ቁጥሮች ወጥተዋል።";
+   return;
+  }
+
+  const remaining = [];
+  for(let n=1;n<=300;n++){
+   if(!used.includes(n)) remaining.push(n);
+  }
+  const n = remaining[Math.floor(Math.random()*remaining.length)];
+  const updated = [...used,n];
+
+  const {error:updateError} = await db.from("bingo_games")
+   .update({
+    current_number:n,
+    drawn_numbers:updated,
+    updated_at:new Date().toISOString()
+   })
+   .eq("room_code",roomCode);
+  if(updateError) throw updateError;
+
+  await syncGame();
+ } catch(e) {
+  console.error(e);
+  document.getElementById("status").textContent =
+   words[lang].error + " " + (e.message || "");
  }
 }
 
 function hasBingo() {
- for (let r = 0; r < 5; r++) {
-  if (card.slice(r*5, r*5+5).every(n => marks.has(n))) return true;
+ if(card.length!==25 || !game) return false;
+ const marked = new Set(game.drawn_numbers || []);
+ for(let r=0;r<5;r++){
+  if(card.slice(r*5,r*5+5).every(n=>marked.has(n))) return true;
  }
- for (let c = 0; c < 5; c++) {
-  if ([0,1,2,3,4].every(r => marks.has(card[r*5+c]))) return true;
+ for(let c=0;c<5;c++){
+  if([0,1,2,3,4].every(r=>marked.has(card[r*5+c]))) return true;
  }
- if ([0,1,2,3,4].every(i => marks.has(card[i*5+i]))) return true;
- if ([0,1,2,3,4].every(i => marks.has(card[i*5+4-i]))) return true;
+ if([0,1,2,3,4].every(i=>marked.has(card[i*5+i]))) return true;
+ if([0,1,2,3,4].every(i=>marked.has(card[i*5+4-i]))) return true;
  return false;
 }
 
 function render() {
  const board = document.getElementById("board");
  board.innerHTML = "";
- card.forEach(n => {
+ const drawn = new Set(game ? game.drawn_numbers || [] : []);
+
+ card.forEach(n=>{
   const cell = document.createElement("div");
-  cell.className = "cell" + (marks.has(n) ? " marked" : "");
+  cell.className = "cell" + (drawn.has(n) ? " marked" : "");
   cell.textContent = n;
   board.appendChild(cell);
  });
+
+ document.getElementById("current").textContent =
+  game && game.current_number != null ? game.current_number : "--";
+
  document.getElementById("history").textContent =
-  drawn.length ? drawn.join(", ") : words[lang].empty;
+  drawn.size ? [...drawn].join(", ") : words[lang].empty;
+
+ if(hasBingo()) {
+  document.getElementById("status").textContent = words[lang].bingo;
+ }
 }
 
-newGame();
+makeCard();
+setLang("om");
 </script>
 </body>
 </html>
