@@ -1,64 +1,84 @@
+
 <!DOCTYPE html>
 <html lang="om">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bulbula Bingo</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  background: #f0f7ff;
-  padding: 12px;
-}
-h1 { color: #0757a6; }
-#board {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 7px;
-  max-width: 420px;
-  margin: 20px auto;
-}
-.number {
-  background: white;
-  border: 2px solid #0875d1;
-  border-radius: 8px;
-  padding: 14px 0;
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
-}
-.number.selected {
-  background: #19a65a;
-  color: white;
-}
-p { font-size: 16px; }
+body{font-family:Arial,sans-serif;background:#f0f8ff;text-align:center;padding:15px;margin:0}
+h1{color:#08753a}
+.box{background:white;padding:16px;border-radius:14px;max-width:460px;margin:15px auto;box-shadow:0 2px 8px #ccc}
+button{padding:12px;border:0;border-radius:8px;background:#08753a;color:white;font-size:16px;margin:5px}
+#board{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;max-width:450px;margin:18px auto}
+.number{background:white;color:#08753a;border:2px solid #08753a;font-weight:bold;padding:12px 0;font-size:18px;border-radius:8px}
+.number.selected{background:#08753a;color:white}
+small{color:#555}
 </style>
 </head>
 <body>
+<h1>🎱 BULBULA BINGO</h1>
+<button onclick="setLang('om')">Afaan Oromoo</button>
+<button onclick="setLang('am')">አማርኛ</button>
 
-<h1>🎱 Bulbula Bingo</h1>
-<p>Afaan Oromoo: Lakkoofsa 1 hanga 47 tuqi.</p>
-<p>አማርኛ፦ ከ1 እስከ 47 ያሉትን ቁጥሮች ይጫኑ።</p>
-<p>💰 Kaffaltii: 10 Birr (Qajeelfama qofa; kaffaltiin hin mirkanoofne)</p>
+<div class="box">
+<h2 id="welcome">Baga nagaan dhuftan!</h2>
+<p id="intro">Lakkoofsa 1 hanga 47 tuqi.</p>
+<p id="fee">Kaffaltiin taphannaa: Birrii 10</p>
+<p id="pay">Kaffaltii dhugaa dura admin irraa odeeffannoo argadhu.</p>
+<p id="notice"><b>Hubachiisa:</b> Kaffaltii kee adminiin osoo hin mirkaneessin hin kaffalin; taphachuun amma demo qofa.</p>
+</div>
 
 <div id="board"></div>
+<button onclick="resetBoard()" id="reset">Irra deebi'i</button>
+<p id="count">Lakkoofsa filatame: 0</p>
+<div class="box">
+<h3 id="rules">Seera Bingo</h3>
+<p id="ruletext">Lakkoofsa tuquun filadhu. Kun demo qofa; badhaasa yookaan kaffaltii hin mirkaneessu.</p>
+</div>
 
 <script>
-const board = document.getElementById("board");
-
-for (let i = 1; i <= 47; i++) {
-  const cell = document.createElement("button");
-  cell.className = "number";
-  cell.textContent = i;
-
-  cell.onclick = function () {
-    cell.classList.toggle("selected");
-  };
-
-  board.appendChild(cell);
+let lang='om';
+const texts={
+om:{
+welcome:'Baga nagaan dhuftan!',intro:'Lakkoofsa 1 hanga 47 tuqi.',
+fee:'Kaffaltiin taphannaa: Birrii 10',
+pay:'Kaffaltii dhugaa dura admin irraa odeeffannoo argadhu.',
+notice:'Hubachiisa: Kaffaltii kee adminiin osoo hin mirkaneessin hin kaffalin; taphachuun amma demo qofa.',
+reset:"Irra deebi'i",count:'Lakkoofsa filatame: ',
+rules:'Seera Bingo',ruletext:'Lakkoofsa tuquun filadhu. Kun demo qofa; badhaasa yookaan kaffaltii hin mirkaneessu.'
+},
+am:{
+welcome:'እንኳን ደህና መጡ!',intro:'ከ1 እስከ 47 ያለውን ቁጥር ይንኩ።',
+fee:'የጨዋታ ክፍያ፦ 10 ብር',
+pay:'እውነተኛ ክፍያ ከመፈጸምዎ በፊት ከአስተዳዳሪው መረጃ ያግኙ።',
+notice:'ማስታወሻ፦ አስተዳዳሪው ክፍያዎን እስካላረጋገጠ ድረስ አይክፈሉ። ይህ ለሙከራ ብቻ ነው።',
+reset:'እንደገና ጀምር',count:'የተመረጡ ቁጥሮች፦ ',
+rules:'የቢንጎ ህጎች',ruletext:'ቁጥር በመንካት ይምረጡ። ይህ ሙከራ ብቻ ነው፤ ክፍያን ወይም ሽልማትን አያረጋግጥም።'
+}};
+function setLang(l){
+lang=l;
+document.documentElement.lang=l;
+for(const id of ['welcome','intro','fee','pay','notice','reset','rules','ruletext'])
+document.getElementById(id).textContent=texts[l][id];
+updateCount();
+}
+const board=document.getElementById('board');
+for(let i=1;i<=47;i++){
+const b=document.createElement('button');
+b.className='number';
+b.textContent=i;
+b.onclick=()=>{b.classList.toggle('selected');updateCount();};
+board.appendChild(b);
+}
+function updateCount(){
+document.getElementById('count').textContent=texts[lang].count+
+document.querySelectorAll('.number.selected').length;
+}
+function resetBoard(){
+document.querySelectorAll('.number').forEach(b=>b.classList.remove('selected'));
+updateCount();
 }
 </script>
-
 </body>
 </html>
