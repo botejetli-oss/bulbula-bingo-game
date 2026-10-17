@@ -4,81 +4,172 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bulbula Bingo</title>
+<title>Bingo 300</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f0f8ff;text-align:center;padding:15px;margin:0}
-h1{color:#08753a}
-.box{background:white;padding:16px;border-radius:14px;max-width:460px;margin:15px auto;box-shadow:0 2px 8px #ccc}
-button{padding:12px;border:0;border-radius:8px;background:#08753a;color:white;font-size:16px;margin:5px}
-#board{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;max-width:450px;margin:18px auto}
-.number{background:white;color:#08753a;border:2px solid #08753a;font-weight:bold;padding:12px 0;font-size:18px;border-radius:8px}
-.number.selected{background:#08753a;color:white}
-small{color:#555}
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f0f4f8;
+  margin: 0;
+  padding: 15px;
+}
+h1 { color: #075e54; }
+button {
+  padding: 12px;
+  margin: 5px;
+  border: 0;
+  border-radius: 8px;
+  background: #087f5b;
+  color: white;
+  font-size: 16px;
+}
+#board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  max-width: 420px;
+  margin: 15px auto;
+}
+.cell {
+  background: white;
+  color: #222;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  padding: 15px 2px;
+  font-weight: bold;
+}
+.cell.marked {
+  background: #087f5b;
+  color: white;
+}
+#current { font-size: 28px; font-weight: bold; }
+#history { overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
-<h1>🎱 BULBULA BINGO</h1>
+<h1 id="title">Bingo 300</h1>
+
 <button onclick="setLang('om')">Afaan Oromoo</button>
 <button onclick="setLang('am')">አማርኛ</button>
 
-<div class="box">
-<h2 id="welcome">Baga nagaan dhuftan!</h2>
-<p id="intro">Lakkoofsa 1 hanga 47 tuqi.</p>
-<p id="fee">Kaffaltiin taphannaa: Birrii 10</p>
-<p id="pay">Kaffaltii dhugaa dura admin irraa odeeffannoo argadhu.</p>
-<p id="notice"><b>Hubachiisa:</b> Kaffaltii kee adminiin osoo hin mirkaneessin hin kaffalin; taphachuun amma demo qofa.</p>
-</div>
+<p id="instruction">Lakkoofsa haaraa baasuuf tuqi.</p>
+<p id="current">--</p>
 
+<button id="draw" onclick="drawNumber()">Lakkoofsa baasi</button>
+<button id="new" onclick="newGame()">Tapha haaraa</button>
+
+<h3 id="cardTitle">Kaardii Bingo kee</h3>
 <div id="board"></div>
-<button onclick="resetBoard()" id="reset">Irra deebi'i</button>
-<p id="count">Lakkoofsa filatame: 0</p>
-<div class="box">
-<h3 id="rules">Seera Bingo</h3>
-<p id="ruletext">Lakkoofsa tuquun filadhu. Kun demo qofa; badhaasa yookaan kaffaltii hin mirkaneessu.</p>
-</div>
+
+<h3 id="historyTitle">Lakkoofsota ba'an</h3>
+<p id="history">Ammaaf lakkoofsi hin baane.</p>
+<h2 id="result"></h2>
 
 <script>
-let lang='om';
-const texts={
-om:{
-welcome:'Baga nagaan dhuftan!',intro:'Lakkoofsa 1 hanga 47 tuqi.',
-fee:'Kaffaltiin taphannaa: Birrii 10',
-pay:'Kaffaltii dhugaa dura admin irraa odeeffannoo argadhu.',
-notice:'Hubachiisa: Kaffaltii kee adminiin osoo hin mirkaneessin hin kaffalin; taphachuun amma demo qofa.',
-reset:"Irra deebi'i",count:'Lakkoofsa filatame: ',
-rules:'Seera Bingo',ruletext:'Lakkoofsa tuquun filadhu. Kun demo qofa; badhaasa yookaan kaffaltii hin mirkaneessu.'
-},
-am:{
-welcome:'እንኳን ደህና መጡ!',intro:'ከ1 እስከ 47 ያለውን ቁጥር ይንኩ።',
-fee:'የጨዋታ ክፍያ፦ 10 ብር',
-pay:'እውነተኛ ክፍያ ከመፈጸምዎ በፊት ከአስተዳዳሪው መረጃ ያግኙ።',
-notice:'ማስታወሻ፦ አስተዳዳሪው ክፍያዎን እስካላረጋገጠ ድረስ አይክፈሉ። ይህ ለሙከራ ብቻ ነው።',
-reset:'እንደገና ጀምር',count:'የተመረጡ ቁጥሮች፦ ',
-rules:'የቢንጎ ህጎች',ruletext:'ቁጥር በመንካት ይምረጡ። ይህ ሙከራ ብቻ ነው፤ ክፍያን ወይም ሽልማትን አያረጋግጥም።'
-}};
-function setLang(l){
-lang=l;
-document.documentElement.lang=l;
-for(const id of ['welcome','intro','fee','pay','notice','reset','rules','ruletext'])
-document.getElementById(id).textContent=texts[l][id];
-updateCount();
+let lang = "om";
+let card = [];
+let drawn = [];
+let marks = new Set();
+
+const words = {
+ om: {
+  instruction: "Lakkoofsa haaraa baasuuf tuqi.",
+  draw: "Lakkoofsa baasi",
+  newGame: "Tapha haaraa",
+  card: "Kaardii Bingo kee",
+  history: "Lakkoofsota ba'an",
+  empty: "Ammaaf lakkoofsi hin baane.",
+  next: "Lakkoofsi ba'e",
+  win: "BAGA GAMMADDE! BINGO!",
+  finished: "Lakkoofsi 300 hundi ba'e. Tapha haaraa jalqabi.",
+  title: "Bingo 300"
+ },
+ am: {
+  instruction: "አዲስ ቁጥር ለማውጣት ይጫኑ።",
+  draw: "ቁጥር አውጣ",
+  newGame: "አዲስ ጨዋታ",
+  card: "የቢንጎ ካርድዎ",
+  history: "የወጡ ቁጥሮች",
+  empty: "እስካሁን ቁጥር አልወጣም።",
+  next: "የወጣው ቁጥር",
+  win: "እንኳን ደስ አለዎት! ቢንጎ!",
+  finished: "300ዎቹ ቁጥሮች ወጥተዋል። አዲስ ጨዋታ ይጀምሩ።",
+  title: "ቢንጎ 300"
+ }
+};
+
+function setLang(language) {
+ lang = language;
+ const w = words[lang];
+ document.getElementById("title").textContent = w.title;
+ document.getElementById("instruction").textContent = w.instruction;
+ document.getElementById("draw").textContent = w.draw;
+ document.getElementById("new").textContent = w.newGame;
+ document.getElementById("cardTitle").textContent = w.card;
+ document.getElementById("historyTitle").textContent = w.history;
+ render();
 }
-const board=document.getElementById('board');
-for(let i=1;i<=300;i++){
-const b=document.createElement('button');
-b.className='number';
-b.textContent=i;
-b.onclick=()=>{b.classList.toggle('selected');updateCount();};
-board.appendChild(b);
+
+function newGame() {
+ const pool = Array.from({length: 300}, (_, i) => i + 1);
+ for (let i = pool.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [pool[i], pool[j]] = [pool[j], pool[i]];
+ }
+ card = pool.slice(0, 25);
+ drawn = [];
+ marks = new Set();
+ document.getElementById("current").textContent = "--";
+ document.getElementById("result").textContent = "";
+ render();
 }
-function updateCount(){
-document.getElementById('count').textContent=texts[lang].count+
-document.querySelectorAll('.number.selected').length;
+
+function drawNumber() {
+ const remaining = [];
+ for (let n = 1; n <= 300; n++) {
+  if (!drawn.includes(n)) remaining.push(n);
+ }
+ if (!remaining.length) {
+  document.getElementById("result").textContent = words[lang].finished;
+  return;
+ }
+ const n = remaining[Math.floor(Math.random() * remaining.length)];
+ drawn.push(n);
+ if (card.includes(n)) marks.add(n);
+ document.getElementById("current").textContent =
+   words[lang].next + ": " + n;
+ render();
+ if (hasBingo()) {
+  document.getElementById("result").textContent = words[lang].win;
+ }
 }
-function resetBoard(){
-document.querySelectorAll('.number').forEach(b=>b.classList.remove('selected'));
-updateCount();
+
+function hasBingo() {
+ for (let r = 0; r < 5; r++) {
+  if (card.slice(r*5, r*5+5).every(n => marks.has(n))) return true;
+ }
+ for (let c = 0; c < 5; c++) {
+  if ([0,1,2,3,4].every(r => marks.has(card[r*5+c]))) return true;
+ }
+ if ([0,1,2,3,4].every(i => marks.has(card[i*5+i]))) return true;
+ if ([0,1,2,3,4].every(i => marks.has(card[i*5+4-i]))) return true;
+ return false;
 }
+
+function render() {
+ const board = document.getElementById("board");
+ board.innerHTML = "";
+ card.forEach(n => {
+  const cell = document.createElement("div");
+  cell.className = "cell" + (marks.has(n) ? " marked" : "");
+  cell.textContent = n;
+  board.appendChild(cell);
+ });
+ document.getElementById("history").textContent =
+  drawn.length ? drawn.join(", ") : words[lang].empty;
+}
+
+newGame();
 </script>
 </body>
 </html>
