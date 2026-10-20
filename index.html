@@ -268,6 +268,8 @@ function hasBingo() {
  if([0,1,2,3,4].every(i=>marked.has(card[i*5+4-i]))) return true;
  return false;
 }
+  const SUPABASE_URL = "https://cnvrdhdbfxrpendqwcvj.supabase.co/rest/v1/ ";
+const SUPABASE_KEY = "sb_publishable_r6dhKgSGbHPmaa2SVmo_5A_JLEv6Gfc ";
 
 function render() {
  const board = document.getElementById("board");
