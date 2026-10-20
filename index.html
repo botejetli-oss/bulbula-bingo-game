@@ -272,6 +272,10 @@ function hasBingo() {
   const SUPABASE_URL = "https://cnvrdhdbfxrpendqwcvj.supabase.co/rest/v1/ ";
 const SUPABASE_KEY = "sb_publishable_r6dhKgSGbHPmaa2SVmo_5A_JLEv6Gfc ";
 
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 function render() {
  const board = document.getElementById("board");
  board.innerHTML = "";
